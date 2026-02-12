@@ -85,7 +85,15 @@ body {
    text-decoration: none;
  }
 
- /* card effect  */
+ .listing-link {
+  text-decoration: none;
+}
+
+.listing-link:hover {
+  text-decoration: none;
+}
+
+/* card effect  */
 
  .card-img-overlay {
    opacity: 0;
