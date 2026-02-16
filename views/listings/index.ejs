@@ -7,10 +7,19 @@
     </form> -->
 
     <div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1">
-        <% for(let listing of allListings) { %>
+        <% for (let listing of allListings) { 
+             let imageSrc;
+             if (typeof listing.image === "string" && listing.image.trim() !== "") {
+               imageSrc = listing.image;
+             } else if (listing.image && listing.image.url) {
+               imageSrc = listing.image.url;
+             } else {
+               imageSrc = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=60";
+             }
+        %>
             <a href="/listings/<%= listing._id %>" class="listing-link">
                 <div class="card col listing-card">
-                    <img src="<%= listing.image.url %>" class="card-img-top" alt="listing_image" style="height: 20rem;">
+                    <img src="<%= imageSrc %>" class="card-img-top" alt="listing_image" style="height: 20rem;">
                     <div class="card-img-overlay"></div>
                     <div class="card-body">
                         <p class="card-text">
