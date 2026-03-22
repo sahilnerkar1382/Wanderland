@@ -6,7 +6,7 @@
   </div>
     <% const imageSrc = typeof listing.image === "string" ? listing.image : listing.image.url; %>
     <div class="card col-6 offset-3 show-card">
-      <img src="<%= imageSrc %>" class="card-img-top show-img" alt="listing_image">
+    <img src="<%= listing.image.url %>" class="card-img-top show-img" alt="listing_image">
   <div class="card-body">
     <p class="card-text">
     
