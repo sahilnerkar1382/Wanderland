@@ -9,10 +9,15 @@ const wrapAsync = require("./utils/wrapAsync.js");
 const ExpressError = require("./utils/ExpressError.js");
 const { listingSchema, reviewSchema } = require("./schema.js");
 const Review = require("./models/reviews.js");
-const listings = require("./routes/listing.js");
-const reviews = require("./routes/reviews.js");
+const listingRouter = require("./routes/listing.js");
+const reviewRouter = require("./routes/reviews.js");
 const session = require("express-session");
 const flash = require("connect-flash");
+const passport = require("passport");
+const LocalStrategy = require("passport-local");
+const userSchema = require("./models/users.js");
+const userRouter = require("./routes/user.js");
+
 
 
 const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
@@ -49,6 +54,13 @@ const sessionOptions = {
 app.use(session(sessionOptions));
 app.use(flash());
 
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new LocalStrategy(userSchema.authenticate()));
+
+passport.serializeUser(userSchema.serializeUser());
+passport.deserializeUser(userSchema.deserializeUser());
+
    app.use((req, res, next) => {
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error");
@@ -61,9 +73,11 @@ app.get("/", (req, res) => {
 
 
 
-app.use("/listings", listings);
+app.use("/listings", listingRouter);
 
-app.use("/listings/:id/reviews", reviews);
+app.use("/listings/:id/reviews", reviewRouter);
+app.use("/", userRouter);
+
 
 // app.get("/testListing", async (req, res) => {
 //   let sampleListing = new Listing({
