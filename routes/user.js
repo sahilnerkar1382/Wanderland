@@ -13,7 +13,7 @@ router
   .post(wrapAsync(userController.signup));
 
 router
-.route("login")
+.route("/login")
 .get( userController.renderlogin)
 .post(saveRedirectUrl, passport.authenticate('local', { 
     failureRedirect: '/login',

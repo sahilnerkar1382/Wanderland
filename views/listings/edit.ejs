@@ -17,6 +17,11 @@
 <%= listing.description %> </textarea>
 <div class="invalid-feedback">Please enter a short description</div>
       </div>
+
+      <diV class="mb-3">
+        Orignal Listing Image  <br>
+        <img src="<%= orignalImageUrl%>"/>
+      </diV>
       <div class="mb-3">
         <label for="image" class="form-label">Image Link </label>
       <input name="listing[image][url]" value="<%= listing.image.url %>" type="text"  class="form-control" required/>
