@@ -1,34 +1,20 @@
-// Import the whole library
 import * as maptilerClient from '@maptiler/client';
+import Listing from "../models/listing.js";
 
-// Or import only the bits you need
-import {
-  config,
-  geocoding,
-  geolocation,
-  coordinates,
-  data,
-  staticMaps,
-  elevation,
-  math,
-} from '@maptiler/client';
-
-import Listing from "../models/listing.js"
-
-// INDEX
+// ================= INDEX =================
 export const index = async (req, res) => {
   const allListings = await Listing.find({});
   res.render("listings/index.ejs", { allListings });
 };
 
-// NEW FORM
+// ================= NEW FORM =================
 export const rendernewform = (req, res) => {
-  return res.render("listings/new.ejs");
+  res.render("listings/new.ejs");
 };
 
-// SHOW
+// ================= SHOW =================
 export const showListing = async (req, res) => {
-  let { id } = req.params;
+  const { id } = req.params;
 
   const listing = await Listing.findById(id)
     .populate({
@@ -42,64 +28,82 @@ export const showListing = async (req, res) => {
     return res.redirect("/listings");
   }
 
-
- 
   res.render("listings/show.ejs", { listing });
 };
 
-// CREATE
+// ================= CREATE =================
 export const createListing = async (req, res, next) => {
-  // in an async function, or as a 'thenable':
-let coordinate = await maptilerClient.geocoding.forward({
-  query: "New Delhi , India",
-  limit : 1,
-  })
-  
+  try {
+    const location = req.body.listing?.location;
 
-  console.log(coordinate.body.features);
-  res.send("Done!");
-  const newListing = new Listing(req.body.listing);
+    // ✅ FIX: prevent empty query error
+    if (!location || location.trim() === "") {
+      req.flash("error", "Location is required");
+      return res.redirect("/listings/new");
+    }
 
-  newListing.owner = req.user._id;
+    const response = await maptilerClient.geocoding.forward({
+      query: location,
+      limit: 1,
+    });
 
-  // ✅ attach image properly
-  if (req.file) {
-    newListing.image = {
-      url: req.file.path,
-      filename: req.file.filename
+    if (!response.body.features.length) {
+      req.flash("error", "Invalid location");
+      return res.redirect("/listings/new");
+    }
+
+    const newListing = new Listing(req.body.listing);
+    newListing.owner = req.user._id;
+
+    newListing.geometry = {
+      type: "Point",
+      coordinates: response.body.features[0].geometry.coordinates,
     };
-  }
-  await newListing.save();
 
-  req.flash("success", "Successfully created a new listing");
-  res.redirect("/listings");
+    if (req.file) {
+      newListing.image = {
+        url: req.file.path,
+        filename: req.file.filename,
+      };
+    }
+
+    await newListing.save();
+
+    req.flash("success", "Successfully created a new listing");
+    res.redirect("/listings");
+
+  } catch (err) {
+    next(err);
+  }
 };
 
-// EDIT FORM
+// ================= EDIT =================
 export const renderEditForm = async (req, res) => {
-  let { id } = req.params;
+  const { id } = req.params;
 
   const listing = await Listing.findById(id);
 
   if (!listing) {
-    req.flash("error", "Listing you requested does not exist");
+    req.flash("error", "Listing not found");
     return res.redirect("/listings");
   }
- let orignalImageUrl  = listing.image.url;
-  orignalImageUrl = orignalImageUrl.replace("/upload", "/upload/h_300,w_250");
 
-  res.render("listings/edit.ejs", { listing , orignalImageUrl });
+  let originalImageUrl = listing.image?.url || "";
+  originalImageUrl = originalImageUrl.replace("/upload", "/upload/h_300,w_250");
+
+  res.render("listings/edit.ejs", { listing, originalImageUrl });
 };
 
-// UPDATE
+// ================= UPDATE =================
 export const updateListing = async (req, res) => {
-  let { id } = req.params;
+  const { id } = req.params;
 
-  let listing = await Listing.findByIdAndUpdate(id, {
-    ...req.body.listing
-  });
+  let listing = await Listing.findByIdAndUpdate(
+    id,
+    { ...req.body.listing },
+    { new: true, runValidators: true }
+  );
 
-  // ✅ update image if new one uploaded
   if (req.file) {
     listing.image = {
       url: req.file.path,
@@ -109,12 +113,13 @@ export const updateListing = async (req, res) => {
   }
 
   req.flash("success", "Successfully updated the listing");
-  res.redirect(`/listings/${id}`);   // FIXED
+
+  res.redirect(`/listings/${id}`); // ✅ FIXED
 };
 
-// DELETE
+// ================= DELETE =================
 export const deleteListing = async (req, res) => {
-  let { id } = req.params;
+  const { id } = req.params;
 
   await Listing.findByIdAndDelete(id);
 

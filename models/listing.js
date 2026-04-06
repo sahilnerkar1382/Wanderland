@@ -33,6 +33,13 @@ const listingSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
+
+    coordinates: {
+       type: [Number],
+       index: "2dsphere",
+       required: true,
+    },
+
   category: {
     type: String,
     enum: ["mountain", "Premium", "Trending", "Farm", "Mountain Cities", "Arctic", "Castle", "Pools", "Camping"],
