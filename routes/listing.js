@@ -11,27 +11,54 @@ const multer = require('multer');
 const { storage } = require("../cloudConfig.js");
 const upload = multer({ storage });
 
-// ================= ROUTES =================
 
+// ================= SEARCH ROUTE (🔥 MUST BE ABOVE :id) =================
+router.get("/search", async (req, res) => {
+  const { query } = req.query;
+
+  const listings = await Listing.find({
+    $or: [
+      { location: { $regex: query, $options: "i" } },
+      { title: { $regex: query, $options: "i" } }
+    ]
+  });
+
+  res.render("listings/index.ejs", { allListings: listings });
+});
+
+
+// ================= CATEGORY =================
+router.get("/category/:category", async (req, res) => {
+  const listings = await Listing.find({
+    category: { $regex: new RegExp("^" + req.params.category + "$", "i") }
+  });
+
+  res.render("listings/index.ejs", { allListings: listings });
+});
+
+
+// ================= MAIN ROUTES =================
 router
 .route("/")
 .get(wrapAsync(ListingController.index))
 .post(
   isLoggedin,
-  upload.single("listing[image]"),
+  upload.single("image"),
   validateListing,
   wrapAsync(ListingController.createListing)
 );
 
 router.get("/new", isLoggedin, ListingController.rendernewform);
 
+
+// ⚠️ THIS MUST BE LAST (VERY IMPORTANT)
 router
 .route("/:id")
 .get(wrapAsync(ListingController.showListing))
 .put(
   isLoggedin,
   isOwner,
-  upload.single("listing[image]"),
+  upload.single("image"),
   validateListing,
   wrapAsync(ListingController.updateListing)
 )
@@ -41,19 +68,6 @@ router
   wrapAsync(ListingController.deleteListing)
 );
 
-router.get(
-  "/:id/edit",
-  isLoggedin,
-  isOwner,
-  wrapAsync(ListingController.renderEditForm)
-);
-
-//  CATEGORY FILTER (FIXED)
-router.get("/category/:category", async (req, res) => {
-  const { category } = req.params;
-  const listings = await Listing.find({ category });
-
-  res.render("listings/index.ejs", { allListings: listings }); //  FIXED
-});
+router.get("/:id/edit", isLoggedin, isOwner, wrapAsync(ListingController.renderEditForm));
 
 module.exports = router;

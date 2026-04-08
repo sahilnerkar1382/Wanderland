@@ -1,5 +1,8 @@
-import * as maptilerClient from '@maptiler/client';
+import * as maptilerClient from "@maptiler/client";
 import Listing from "../models/listing.js";
+
+//  SET API KEY (VERY IMPORTANT)
+maptilerClient.config.apiKey = process.env.MAPTILER_API_KEY;
 
 // ================= INDEX =================
 export const index = async (req, res) => {
@@ -19,7 +22,7 @@ export const showListing = async (req, res) => {
   const listing = await Listing.findById(id)
     .populate({
       path: "reviews",
-      populate: { path: "author" }
+      populate: { path: "author" },
     })
     .populate("owner");
 
@@ -34,21 +37,32 @@ export const showListing = async (req, res) => {
 // ================= CREATE =================
 export const createListing = async (req, res, next) => {
   try {
-    const location = req.body.listing?.location;
+    const location = req.body.listing?.location?.trim();
 
-    // ✅ FIX: prevent empty query error
-    if (!location || location.trim() === "") {
+    // ✅ 1. Check empty location
+    if (!location) {
       req.flash("error", "Location is required");
       return res.redirect("/listings/new");
     }
 
-    const response = await maptilerClient.geocoding.forward({
-      query: location,
+    // ✅ 2. Call MapTiler correctly
+    const response = await maptilerClient.geocoding.forward(location, {
       limit: 1,
     });
 
-    if (!response.body.features.length) {
+    console.log("MAP RESPONSE:", response); // 🔥 DEBUG
+
+    // ✅ 3. Safe check
+    if (!response || !response.features || response.features.length === 0) {
       req.flash("error", "Invalid location");
+      return res.redirect("/listings/new");
+    }
+
+    const coordinates = response.features[0]?.geometry?.coordinates;
+
+    // ✅ 4. DOUBLE safety
+    if (!coordinates) {
+      req.flash("error", "Could not fetch coordinates");
       return res.redirect("/listings/new");
     }
 
@@ -57,7 +71,7 @@ export const createListing = async (req, res, next) => {
 
     newListing.geometry = {
       type: "Point",
-      coordinates: response.body.features[0].geometry.coordinates,
+      coordinates: coordinates,
     };
 
     if (req.file) {
@@ -73,6 +87,7 @@ export const createListing = async (req, res, next) => {
     res.redirect("/listings");
 
   } catch (err) {
+    console.error("❌ ERROR:", err);
     next(err);
   }
 };
@@ -104,24 +119,33 @@ export const updateListing = async (req, res) => {
     { new: true, runValidators: true }
   );
 
+  if (!listing) {
+    req.flash("error", "Listing not found");
+    return res.redirect("/listings");
+  }
+
   if (req.file) {
     listing.image = {
       url: req.file.path,
-      filename: req.file.filename
+      filename: req.file.filename,
     };
     await listing.save();
   }
 
   req.flash("success", "Successfully updated the listing");
-
-  res.redirect(`/listings/${id}`); // ✅ FIXED
+  res.redirect(`/listings/${id}`);
 };
 
 // ================= DELETE =================
 export const deleteListing = async (req, res) => {
   const { id } = req.params;
 
-  await Listing.findByIdAndDelete(id);
+  const deleted = await Listing.findByIdAndDelete(id);
+
+  if (!deleted) {
+    req.flash("error", "Listing not found");
+    return res.redirect("/listings");
+  }
 
   req.flash("success", "Successfully deleted the listing");
   res.redirect("/listings");

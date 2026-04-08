@@ -39,9 +39,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// 🔥 IMPORTANT for image access
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
 // ================= SESSION =================
 
 const sessionOptions = {
@@ -77,24 +74,24 @@ app.use((req, res, next) => {
 
 // ================= ROUTES =================
 
-// Home
-// app.get("/", (req, res) => {
-//   res.send("Hi, I am root");
-// });
+// ✅ ROOT REDIRECT (VERY IMPORTANT)
+app.get("/", (req, res) => {
+  res.redirect("/listings");
+});
 
-// Listings
+// ✅ LISTINGS
 app.use("/listings", listingRouter);
 
-// Reviews
+// ✅ REVIEWS (must be AFTER listings)
 app.use("/listings/:id/reviews", reviewRouter);
 
-// Users
+// ✅ USERS
 app.use("/", userRouter);
 
-// ================= 404 HANDLER (FIXED) =================
+// ================= 404 HANDLER =================
 
-// 🔥 NO MORE "*" ERROR
-app.use((req, res, next) => {
+// ✅ only for unmatched routes
+app.all("*", (req, res, next) => {
   next(new ExpressError(404, "Page Not Found!"));
 });
 

@@ -34,15 +34,20 @@ const listingSchema = new Schema({
     ref: "User",
   },
 
-    coordinates: {
-       type: [Number],
-       index: "2dsphere",
-       required: true,
+    geometry : {
+    type: {
+      type: String, // Don't do `{ location: { type: String } }`
+      enum: ['Point'], // 'location.type' must be 'Point'
+      required: true
     },
-
+    coordinates: {
+      type: [Number],
+      required: true
+    }
+  },
   category: {
     type: String,
-    enum: ["mountain", "Premium", "Trending", "Farm", "Mountain Cities", "Arctic", "Castle", "Pools", "Camping"],
+    enum: ["mountain", "Premium", "Trending", "Farm", "Mountain Cities", "Arctic", "Castle", "Pools", "Camping", "Boats","Rooms", "Iconic-Cities"],
     
   },
 });
